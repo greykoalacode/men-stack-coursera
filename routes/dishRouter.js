@@ -14,7 +14,6 @@ dishRouter.route('/')
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain');
     next();
-
 })
 .get((req, res, next ) => {
     Dishes.find({})
