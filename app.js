@@ -3,6 +3,9 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var session = require('express-session');
+var FileStore = require('session-file-store')(session);
+
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -29,12 +32,21 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser('12345-67890-09876-54321'));
+// app.use(cookieParser('12345-67890-09876-54321'));
+
+app.use(session({
+  name: 'session-id',
+  secret: '12345-67890-09876-54321',
+  saveUninitialized: false,
+  resave: false,
+  store: new FileStore()
+}))
+
 
 function auth(req, res, next) {
-  console.log(req.signedCookies);
+  console.log(req.session);
 
-  if (!req.signedCookies.user){
+  if (!req.session.user){
     var authHeader = req.headers.authorization;
     if(!authHeader){
       var err = new Error('You are not authenticated!');
@@ -47,7 +59,7 @@ function auth(req, res, next) {
     var password = auth[1];
 
     if( username === 'admin' && password === 'password') {
-      res.cookie('user', 'admin', { signed: true })
+      req.session.user = 'admin';
       next();
     } else {
       var err = new Error('Wrong Credentials bro! You are not authenticated!');
@@ -57,7 +69,7 @@ function auth(req, res, next) {
     }
   }
   else {
-    if(req.signedCookies.user === 'admin'){
+    if(req.session.user === 'admin'){
       next();
     }
     else {
