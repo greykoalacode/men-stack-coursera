@@ -7,6 +7,13 @@ const user = require('../models/user');
 const cors = require('./cors');
 const Dishes = require('../models/dishes');
 
+const getDetailedDish = async (dbModel, array) => {
+    const newDetailedList = await Promise.all(array.map(async each => {
+        var eachDish = await dbModel.findById({_id: each })
+        return eachDish;
+    }))
+    return newDetailedList;
+}
 
 const checkValidDish = (req, res, next) => {
     Dishes.findById(req.params.dishId)
@@ -39,21 +46,15 @@ favouriteRouter.route('/')
     Favourites.findOne({user: req.user._id})
     .populate('user')
     .populate('dishes')
-    .then((favourites) => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json(favourites);
+    .then(favourites => {
+        res.status(200).send(favourites);
     }, err => next(err))
     .catch(err => next(err));
 })
-.post(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, async (req,res, next) => {
-    const List = req.body.ids;
+.post(cors.corsWithOptions, authenticate.verifyUser, async (req,res, next) => {
+    const List = req.body;
+    const filteredList = await getDetailedDish(Dishes, List);
     
-    const filteredList = await Promise.all(List.map(async each => {
-        var Dish = await Dishes.findById({_id: each })
-        return Dish;
-    }))
-
     Favourites.findOne({user: req.user._id})
     .then(
         async favourite => {
@@ -61,32 +62,24 @@ favouriteRouter.route('/')
                 let newList = List.filter((dish) => {
                     return !favourite.dishes.includes(dish)
                 });
-                const newFilteredList = await Promise.all(newList.map(async each => {
-                    var Dish = await Dishes.findById({_id: each })
-                    return Dish;
-                }))
+                const newFilteredList = await getDetailedDish(Dishes, newList);
+                // Promise.all(newList.map(async each => {
+                //     var Dish = await Dishes.findById({_id: each })
+                //     return Dish;
+                // }))
                 favourite.dishes.push(...newFilteredList);
                 favourite.populate('user')
                 .save()
                 .then(fav => {
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json(fav);
+                    res.status(200).send(fav);
                 })
                 .catch(err => next(err));
             }
             else {
-                Favourites
-                .create({
-                    user: req.user._id,
-                    dishes: filteredList
-                })
+                Favourites.create({ user: req.user._id, dishes: filteredList })
                 .then(
                     favourite => {
-                        console.log('Created')
-                        res.statusCode = 200;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.json(favourite);
+                        res.status(200).send(favourite);
                     }
                 )
             }
@@ -97,9 +90,7 @@ favouriteRouter.route('/')
     Favourites.findOneAndRemove({ user: req.user._id })
     .then(
         response => {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json(response);
+            res.status(200).send(response);
         }
     )
     .catch(err => next(err));
@@ -120,9 +111,7 @@ favouriteRouter.route('/:dishId')
                 })
                 .then(
                     resp => {
-                        res.statusCode = 200;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.json(resp);
+                        res.status(200).send(resp);
                     }, err => next(err)
                 )
             } else {
@@ -131,9 +120,7 @@ favouriteRouter.route('/:dishId')
                     fav.save()
                     .then(
                         resp => {
-                            res.statusCode = 200;
-                            res.setHeader('Content-Type', 'application/json');
-                            res.json(resp);
+                            res.status(200).send(resp);
                         }
                     );
                 } else {
@@ -159,17 +146,13 @@ favouriteRouter.route('/:dishId')
                     fav.save()
                     .then(
                         resp => {
-                            res.statusCode = 200;
-                            res.setHeader('Content-Type', 'application/json');
-                            res.json(resp);
+                            res.status(200).send(resp);
                         }
                     )
                 }
             }
         }
     )
-
-
 });
 
 module.exports = favouriteRouter;
