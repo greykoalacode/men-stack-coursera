@@ -18,16 +18,6 @@ const favouriteSchema = new Schema({
      timestamps: true
 });
 
-// const favSchema = new Schema({
-//     userId: {
-//         type: mongoose.Schema.Types.ObjectId,
-//         ref: user
-//     },
-//     dishes: {
-//         type: Array[mongoose.Schema.Types.ObjectId],
-
-//     }
-// })
 
 var Favourites = mongoose.model('Favourite', favouriteSchema);
 
